@@ -500,16 +500,6 @@ body.dark #watcherNotify > div {
       <input id="cve" type="text" placeholder="Enter CVE (e.g., CVE-2021-44228) or Vendor/Product" />
       <button id="go" class="btn">Run</button>
       <button id="aiAnalysis" class="btn">AI Analysis</button>
-      <button id="watcherBtn" class="btn">CVE Watcher</button>
-
-<div id="watcher">
-    <div class="settings-content" role="dialog" aria-modal="true">
-        <h2>CVE Watcher</h2>
-        <label>CVEs to watch (comma or newline separated)</label>
-        <textarea id="watcherList" rows="6" placeholder="CVE-2024-12345\nCVE-2023-99999"></textarea>
-        <!-- ... rest of inputs/buttons ... -->
-    </div>
-</div>
 
 <div id="watcherNotify"></div>
     </header>
@@ -1474,6 +1464,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
