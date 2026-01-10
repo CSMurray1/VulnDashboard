@@ -428,15 +428,59 @@ body.dark .feed ul li a { color: #5caeff; }
   display: none;
 }
 
-/* Dark mode fix for Watcher textarea placeholder */
-body.dark #watcherList::placeholder { color: #bbb; }
+#watcher {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+    z-index: 1300;
+}
+.settings-content {
+    background: var(--panel-light);
+    color: var(--text-light);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 520px;
+    padding: 24px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+  
+body.dark .settings-content {
+    background: var(--panel-dark);
+    color: var(--text-dark);
+    border-color: var(--border-dark);
+}
+  body.dark #watcherList,
+body.dark #watcherInterval {
+    background: var(--input-bg-dark);
+    color: var(--input-text-dark);
+    border-color: var(--border-dark);
+}
+body.dark #watcherList::placeholder {
+    color: #aaa;
+}
 
-
-/* Force dark mode for AI Analysis modal outer container */
-body.dark #analysisModal > div {
-  background: var(--panel-dark) !important;
-  color: var(--text-dark) !important;
-  border-color: var(--border-dark) !important;
+  #watcherNotify {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    max-width: 520px;
+    z-index: 1400;
+    display: none;
+}
+#watcherNotify > div {
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+body.dark #watcherNotify > div {
+    background: #1e1e1e;
+    border: 1px solid #444;
 }
 
 </style>
@@ -456,6 +500,18 @@ body.dark #analysisModal > div {
       <input id="cve" type="text" placeholder="Enter CVE (e.g., CVE-2021-44228) or Vendor/Product" />
       <button id="go" class="btn">Run</button>
       <button id="aiAnalysis" class="btn">AI Analysis</button>
+      <button id="watcherBtn" class="btn">CVE Watcher</button>
+
+<div id="watcher">
+    <div class="settings-content" role="dialog" aria-modal="true">
+        <h2>CVE Watcher</h2>
+        <label>CVEs to watch (comma or newline separated)</label>
+        <textarea id="watcherList" rows="6" placeholder="CVE-2024-12345\nCVE-2023-99999"></textarea>
+        <!-- ... rest of inputs/buttons ... -->
+    </div>
+</div>
+
+<div id="watcherNotify"></div>
     </header>
 
     <main class="cve-main">
@@ -1418,6 +1474,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
