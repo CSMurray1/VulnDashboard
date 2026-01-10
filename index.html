@@ -6,7 +6,6 @@
 <title>Vulnerability Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪲</text></svg>" />
 
-<!-- ===== Global Styles ===== -->
 <style>
 :root {
   --bg-light: #f8f9fa;
@@ -14,7 +13,6 @@
   --panel-light: #ffffff;
   --border-light: #dee2e6;
   --link-light: #0d6efd;
-
   --bg-dark: #121212;
   --text-dark: #e9ecef;
   --panel-dark: #1e1e1e;
@@ -22,11 +20,8 @@
   --link-dark: #8ab4f8;
   --input-bg-dark: #2d2d2d;
   --input-text-dark: #e9ecef;
-
-  --heat-bar: #0d6efd;
 }
 
-/* Base */
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   margin: 0;
@@ -42,7 +37,6 @@ a { color: var(--link-light); text-decoration: none; }
 body.dark a { color: var(--link-dark); }
 a:hover { text-decoration: underline; }
 
-/* Top nav tabs */
 nav {
   display: flex;
   justify-content: center;
@@ -57,24 +51,14 @@ nav button {
   background: #444;
   border: none;
   cursor: pointer;
-  outline: none;
-  transition: background 0.3s;
 }
 nav button.active { background: #0074d9; }
-nav button:hover { background: #555; }
 
-/* Tabs container */
-.tabs > section { display: none; padding: 20px; }
-.tabs > section.active { display: block; }
-
-/* Mode Toggle */
 .mode {
   position: fixed;
   top: 14px;
   right: 14px;
   padding: 8px 16px;
-  font-size: 14px;
-  color: #333;
   background: #ddd;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -83,14 +67,12 @@ nav button:hover { background: #555; }
 }
 body.dark .mode {
   background: #444;
-  color: #f4f4f9;
+  color: white;
   border-color: #666;
 }
 
-/* CVE Header */
 header.cve-header {
   padding: 20px;
-  background: inherit;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   gap: 12px;
@@ -98,391 +80,147 @@ header.cve-header {
   flex-wrap: wrap;
   position: sticky;
   top: 0;
+  background: inherit;
   z-index: 10;
 }
 body.dark header.cve-header { border-color: var(--border-dark); }
-header.cve-header h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-header.cve-header h1::before {
-  content: "";
-  display: block;
-  width: 36px;
-  height: 36px;
-  background: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪲</text></svg>') center/cover no-repeat;
-}
+
 #cve {
   flex: 1;
   min-width: 300px;
-  padding: 12px 16px;
+  padding: 12px;
   font-size: 16px;
   border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--panel-light);
+  border-radius: 6px;
 }
-body.dark #cve {
-  background: var(--input-bg-dark);
-  border-color: var(--border-dark);
-  color: var(--input-text-dark);
-}
+body.dark #cve { background: var(--input-bg-dark); border-color: var(--border-dark); color: white; }
+
 .btn {
-  padding: 10px 18px;
-  border: 1px solid var(--border-light);
+  padding: 10px 16px;
   background: var(--panel-light);
-  color: var(--text-light);
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
 }
 body.dark .btn {
-  background: var(--input-bg-dark);
+  background: var(--panel-dark);
   border-color: var(--border-dark);
-  color: var(--text-dark);
+  color: white;
 }
 
-/* Dashboard Layout */
 main.cve-main {
-  padding: 24px;
+  padding: 20px;
   display: grid;
+  gap: 20px;
   grid-template-columns: 1fr 1fr 320px;
   grid-template-areas:
     "details details watch"
     "sources relevant vulncheck";
-  gap: 20px;
 }
-@media (max-width:1400px) {
-  main.cve-main {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "details details"
-      "watch watch"
-      "vulncheck vulncheck"
-      "sources relevant";
-  }
-}
-@media (max-width:1000px) {
-  main.cve-main {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "details"
-      "watch"
-      "vulncheck"
-      "sources"
-      "relevant";
-  }
-}
-#cveDetails { grid-area: details; }
-#exploitationWatch { grid-area: watch; }
-#vulncheckMonitor { grid-area: vulncheck; }
-#notableSources { grid-area: sources; }
-#relevantSearches { grid-area: relevant; }
 
-/* Panels */
 .panel {
   background: var(--panel-light);
   border: 1px solid var(--border-light);
-  border-radius: 12px;
-  overflow: hidden;
-}
-body.dark .panel {
-  background: var(--panel-dark);
-  border-color: var(--border-dark);
-}
-.panel > header {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border-light);
-  background: rgba(0,0,0,0.03);
-}
-body.dark .panel > header {
-  border-color: var(--border-dark);
-  background: rgba(255,255,255,0.03);
-}
-.panel > header h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.content { padding: 16px 18px; }
-.item {
-  padding: 12px 0;
-  border-bottom: 1px dashed var(--border-light);
-}
-body.dark .item { border-color: #444; }
-.item:last-child { border: none; }
-.title { font-weight: 600; margin-bottom: 6px; }
-.meta { font-size: 14px; opacity: .9; }
-
-/* Chips & badges */
-.chip {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  color: white;
-  margin-left: 8px;
-}
-.low{background:#2d7f3a;}
-.medium{background:#b57f00;}
-.high{background:#cc4a00;}
-.critical{background:#a60000;}
-
-.badge {
-  display: inline-block;
-  padding: 5px 10px;
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
 }
-.yes{background:#d4edda;color:#155724;}
-.no{background:#f8d7da;color:#721c24;}
-body.dark .yes{background:#1e3f2a;color:#a7f3c0;}
-body.dark .no{background:#4a1e20;color:#f5b5bb;}
+body.dark .panel { background: var(--panel-dark); border-color: var(--border-dark); }
 
-/* Link row */
-.link-row {
-  margin:6px 0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.link-row a { word-break:break-all; }
+.content { padding: 16px; }
 
-/* Toast + Loading */
-#toast {
-  position:fixed;
-  bottom:30px;
-  left:50%;
-  transform:translateX(-50%);
-  background:#333;
-  color:#fff;
-  padding:12px 24px;
-  border-radius:8px;
-  display:none;
-  z-index:1000;
+#toast, #loading {
+  position: fixed;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  z-index: 2000;
 }
-#loading {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background: rgba(0,0,0,0.7);
-  color:#fff;
-  font-size:24px;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:1200;
-}
+#toast { bottom: 30px; left: 50%; transform: translateX(-50%); display: none; }
+#loading { inset: 0; display: none; align-items: center; justify-content: center; }
 
-/* Attack Modal */
 #attackModal {
-  display:none;
-  position:fixed;
-  inset:0;
+  display: none;
+  position: fixed;
+  inset: 0;
   background: rgba(0,0,0,0.7);
-  z-index:1100;
-  align-items:center;
-  justify-content:center;
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
 }
 #attackModal > div {
-  background: var(--panel-light);
-  border:1px solid var(--border-light);
-  border-radius:12px;
-  width:90%;
-  max-width:1200px;
-  height:85%;
-  position:relative;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1000px;
+  position: relative;
 }
-body.dark #attackModal > div {
-  background: var(--panel-dark);
-  border-color: var(--border-dark);
-}
-#attackGraph { padding:20px; height:calc(100% - 60px); overflow:auto; }
-#closeModal {
-  position:absolute;
-  top:16px;
-  right:16px;
-  z-index:1110;
-}
+body.dark #attackModal > div { background: #222; color: white; }
 
-/* CVE Watcher */
-#watcherBtn {
-  margin-left: auto;
-}
 #watcher {
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
+  z-index: 1300;
   align-items: center;
   justify-content: center;
-  z-index: 1300;
 }
 .watcher-content {
-  background: var(--panel-light);
-  color: var(--text-light);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  width: 90%;
-  max-width: 540px;
+  background: white;
   padding: 24px;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-body.dark .watcher-content {
-  background: var(--panel-dark);
-  color: var(--text-dark);
-  border-color: var(--border-dark);
-}
-#watcher textarea,
-#watcher input {
-  width: 100%;
-  padding: 8px;
-  margin: 8px 0 16px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  background: white;
-}
-body.dark #watcher textarea,
-body.dark #watcher input {
-  background: var(--input-bg-dark);
-  color: var(--input-text-dark);
-  border-color: var(--border-dark);
-}
-body.dark #watcher textarea::placeholder { color: #aaa; }
-
-#watcherNotify {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  max-width: 520px;
-  z-index: 1400;
-  display: none;
-}
-#watcherNotify > div {
-  background: white;
-  border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  width: 90%;
+  max-width: 500px;
 }
-body.dark #watcherNotify > div {
-  background: #1e1e1e;
-  border-color: #444;
-}
-
-/* Feeds */
-.feed-container { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
-.feed {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  width: 300px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-body.dark .feed {
-  background: #2e2e50;
-  border-color: #444;
-}
+body.dark .watcher-content { background: #222; color: white; }
 </style>
 </head>
-<body class="light">
+<body>
 
-<button class="mode" onclick="toggleMode()">Dark Mode</button>
+<button class="mode">Dark Mode</button>
 
 <nav>
-  <button onclick="switchTab(0)" class="active">CVE Dashboard</button>
-  <button onclick="switchTab(1)">CyberWatch Dashboard</button>
+  <button class="active">CVE Dashboard</button>
+  <button>CyberWatch Dashboard</button>
 </nav>
 
-<div class="tabs">
-  <section id="tab1" class="active">
-    <header class="cve-header">
-      <h1>Vulnerability Analysis Dashboard</h1>
-      <input id="cve" type="text" placeholder="Enter CVE (e.g., CVE-2021-44228) or Vendor/Product" />
-      <button id="go" class="btn">Run</button>
-      <button id="aiAnalysis" class="btn">AI Analysis</button>
-      <button id="watcherBtn" class="btn">CVE Watcher</button>
-    </header>
+<header class="cve-header">
+  <h1>Vulnerability Dashboard</h1>
+  <input id="cve" placeholder="CVE-2021-44228" />
+  <button id="go" class="btn">Run</button>
+  <button id="watcherBtn" class="btn">CVE Watcher</button>
+</header>
 
-    <main class="cve-main">
-      <div id="cveDetails" class="panel">
-        <header><h2>CVE Details & Exploitation Signals</h2></header>
-        <div class="content" id="cveContent"><div class="meta">Enter a CVE or Vendor/Product and click Run.</div></div>
-      </div>
+<main class="cve-main">
+  <div class="panel" id="cveDetails">
+    <div class="content" id="cveContent">Enter a CVE and click Run</div>
+  </div>
+  <!-- Add your other panels here if needed -->
+</main>
 
-      <div id="exploitationWatch" class="panel">
-        <header><h2>CVE & Exploitation Watcher</h2></header>
-        <div class="content" id="watchContent"><div class="meta">Loading feeds…</div></div>
-      </div>
+<div id="loading">Loading...</div>
+<div id="toast"></div>
 
-      <div id="vulncheckMonitor" class="panel">
-        <header><h2>Recent VulnCheck KEV (last 10 days)</h2></header>
-        <div class="content" id="vulncheckContent"><div class="meta">Loading...</div></div>
-      </div>
-
-      <div id="notableSources" class="panel">
-        <header><h2>Notable Sources & References</h2></header>
-        <div class="content" id="sourcesContent"><div class="meta">Will appear after running a CVE.</div></div>
-      </div>
-
-      <div id="relevantSearches" class="panel">
-        <header><h2>Relevant Searches & Monitoring</h2></header>
-        <div class="content" id="searchLinks"><div class="meta">Enter a term above and click Run to populate links.</div></div>
-      </div>
-    </main>
-
-    <div id="toast"></div>
-    <div id="loading">Loading data...</div>
-
-    <!-- Attack Visualizer Modal -->
-    <div id="attackModal">
-      <div>
-        <button id="closeModal" class="btn">Close Visualizer</button>
-        <div id="attackGraph"></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="tab2">
-    <div class="feeds-header" style="text-align:center">
-      <h1>Live Cybersecurity Exploits Monitor</h1>
-      <div style="margin:12px 0;">
-        <button class="btn" onclick="displayFeeds()">Refresh Feeds</button>
-      </div>
-    </div>
-    <div id="feed-container" class="feed-container"></div>
-  </section>
-</div>
-
-<!-- CVE Watcher Overlay -->
-<div id="watcher">
-  <div class="watcher-content">
-    <h2>CVE Watcher</h2>
-    <label>CVEs to watch (comma or newline separated)</label>
-    <textarea id="watcherList" rows="6" placeholder="CVE-2024-12345\nCVE-2023-99999"></textarea>
-    <label>Poll interval (minutes, default 30)</label>
-    <input id="watcherInterval" type="number" min="5" value="30">
-    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
-      <button id="watcherSave" class="btn">Save & Start</button>
-      <button id="watcherStop" class="btn">Stop</button>
-      <button id="watcherCheck" class="btn">Check now</button>
-      <button id="watcherClose" class="btn">Close</button>
-    </div>
+<!-- Attack Modal -->
+<div id="attackModal">
+  <div>
+    <button id="closeModal">Close</button>
+    <div id="attackGraph">Attack path visualization placeholder</div>
   </div>
 </div>
 
-<div id="watcherNotify"></div>
+<!-- Watcher Modal -->
+<div id="watcher">
+  <div class="watcher-content">
+    <h2>CVE Watcher</h2>
+    <textarea id="watcherList" rows="6" placeholder="CVE-2024-XXXX\nCVE-2025-YYYY"></textarea>
+    <button id="watcherClose" class="btn">Close</button>
+  </div>
+</div>
 
 <script>
-// ==================== HELPERS ====================
-const IS_FILE_ORIGIN = location.protocol === 'file:';
-
+// Helpers
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -490,114 +228,52 @@ function toast(msg) {
   setTimeout(() => t.style.display = "none", 3000);
 }
 
-function linkRow(url, label) {
-  return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label || url}</a>`;
-}
-
 function toggleMode() {
-  document.body.classList.toggle('dark');
+  document.body.classList.toggle("dark");
   document.querySelector(".mode").textContent = document.body.classList.contains("dark") ? "Light Mode" : "Dark Mode";
-  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
 }
 
-function initTheme() {
-  if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark");
-    document.querySelector(".mode").textContent = "Light Mode";
-  }
-}
-
-function switchTab(tabIndex) {
-  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===tabIndex));
-  document.querySelectorAll('.tabs > section').forEach((s,i) => s.classList.toggle('active', i===tabIndex));
-}
-
-// ==================== CVE SEARCH ====================
+// CVE Search
 async function runSearch() {
-  const inputRaw = (document.getElementById("cve")?.value || "").trim();
-  const input = inputRaw.toUpperCase();
-
-  if (!/^CVE-\d{4}-\d{4,}$/i.test(input)) {
-    toast("Please enter a valid CVE (e.g. CVE-2021-44228)");
+  const input = document.getElementById("cve").value.trim().toUpperCase();
+  if (!/^CVE-\d{4}-\d{4,}$/.test(input)) {
+    toast("Please enter a valid CVE");
     return;
   }
 
   document.getElementById("loading").style.display = "flex";
 
   try {
-    const [cveRes, nvdRes, epssRes] = await Promise.all([
-      fetch(`https://cveawg.mitre.org/api/cve/${input}`),
-      fetch(`https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=${input}`),
-      fetch(`https://api.first.org/data/v1/epss?cve=${input}`)
-    ]);
+    const res = await fetch(`https://cveawg.mitre.org/api/cve/${input}`);
+    if (!res.ok) throw new Error("CVE not found");
+    const data = await res.json();
 
-    if (!cveRes.ok) throw new Error("CVE not found");
-
-    const cveData = await cveRes.json();
-    const nvdData = nvdRes.ok ? await nvdRes.json() : null;
-    const epssData = epssRes.ok ? (await epssRes.json()).data?.[0] : null;
-
-    const cna = cveData?.containers?.cna || {};
-    const desc = cna.descriptions?.[0]?.value || "No description available";
-
-    const refs = (cna.references || []).filter(r => r.url);
-    const refsHtml = refs.length
-      ? refs.map(r => `<div class="item"><div class="title">${r.name || "Reference"}</div><div class="meta">${linkRow(r.url, r.url)}</div></div>`).join('')
-      : '<div class="meta">No references</div>';
+    const desc = data?.containers?.cna?.descriptions?.[0]?.value || "No description available";
 
     document.getElementById("cveContent").innerHTML = `
-      <div class="item"><div class="title">${input}</div></div>
-      <div class="item"><div class="title">Description</div><div class="meta">${desc}</div></div>
-      ${epssData ? `<div class="item"><div class="title">EPSS</div><div class="meta">Score: ${Number(epssData.epss).toFixed(4)} (~${(epssData.epss*100).toFixed(2)}%)</div></div>` : ''}
-      <div class="item"><div class="title">References</div><div class="meta">${refsHtml}</div></div>
+      <h3>${input}</h3>
+      <p>${desc}</p>
+      <button id="openAttack">Show Attack Path</button>
     `;
 
-    document.getElementById("sourcesContent").innerHTML = refsHtml;
-
-    document.getElementById("searchLinks").innerHTML = `
-      <div class="item">
-        <div class="title">Quick Links</div>
-        <div class="meta">
-          ${linkRow(`https://nvd.nist.gov/vuln/detail/${input}`, "NVD")}<br>
-          ${linkRow(`https://github.com/search?q=${input}&type=code`, "GitHub Code Search")}
-        </div>
-      </div>
-    `;
-
-    // Safely attach attack visualizer handler
+    // Safe event attachment
     const attackBtn = document.getElementById("openAttack");
     if (attackBtn) {
       attackBtn.onclick = () => {
         document.getElementById("attackModal").style.display = "flex";
-        document.getElementById("attackGraph").innerHTML = `<div style="padding:20px">Demo attack path visualization for ${input}</div>`;
       };
     }
 
   } catch (err) {
-    document.getElementById("cveContent").innerHTML = `<div class="meta" style="color:#e74c3c">Error loading data: ${err.message}</div>`;
+    document.getElementById("cveContent").innerHTML = `Error: ${err.message}`;
   } finally {
     document.getElementById("loading").style.display = "none";
   }
 }
 
-// ==================== CVE Watcher ====================
-(() => {
-  const overlay = document.getElementById("watcher");
-  const closeBtn = document.getElementById("watcherClose");
-
-  document.getElementById("watcherBtn").onclick = () => overlay.style.display = "flex";
-  if (closeBtn) closeBtn.onclick = () => overlay.style.display = "none";
-
-  // Basic save stub - you can expand this later
-  document.getElementById("watcherSave")?.onclick = () => {
-    toast("Watcher settings saved (stub)");
-    overlay.style.display = "none";
-  };
-})();
-
-// ==================== Bindings ====================
+// Event listeners
 document.addEventListener("DOMContentLoaded", () => {
-  initTheme();
+  document.querySelector(".mode").onclick = toggleMode;
 
   document.getElementById("go").onclick = runSearch;
   document.getElementById("cve").onkeydown = (e) => {
@@ -609,6 +285,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("closeModal").onclick = () => {
     document.getElementById("attackModal").style.display = "none";
+  };
+
+  document.getElementById("watcherBtn").onclick = () => {
+    document.getElementById("watcher").style.display = "flex";
+  };
+
+  document.getElementById("watcherClose").onclick = () => {
+    document.getElementById("watcher").style.display = "none";
   };
 });
 </script>
