@@ -354,84 +354,6 @@ body.dark #attackModal { background: var(--bg-dark); }
   z-index:1110;
 }
 
-/* Settings modal */
-#settings {
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background: rgba(0,0,0,0.7);
-  align-items:center;
-  justify-content:center;
-  z-index:1300;
-}
-.settings-content {
-  background: var(--panel-light);
-  padding:30px;
-  border-radius:12px;
-  width:90%;
-  max-width:520px;
-  color:inherit;
-}
-body.dark .settings-content { background: var(--panel-dark); }
-.settings-content input, .settings-content textarea {
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:6px;
-  border:1px solid var(--border-light);
-  background: var(--panel-light);
-  color: var(--text-light);
-}
-body.dark .settings-content input, body.dark .settings-content textarea {
-  background: var(--input-bg-dark);
-  border-color: var(--border-dark);
-  color: var(--input-text-dark);
-}
-.settings-content label {
-  display:block;
-  margin-bottom:16px;
-  font-weight:600;
-}
-
-/* Prevalence modal */
-#prevalenceModal {
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background: rgba(0,0,0,0.65);
-  z-index:1250;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
-.prev-content {
-  background: var(--panel-light);
-  color:inherit;
-  border:1px solid var(--border-light);
-  border-radius:12px;
-  max-width:920px;
-  width:95%;
-  max-height:85vh;
-  overflow:auto;
-  padding:20px 24px;
-}
-body.dark .prev-content {
-  background: var(--panel-dark);
-  border-color: var(--border-dark);
-}
-.prev-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:12px;
-}
-
 /* Dark mode fix for AI Analysis modal */
 body.dark #analysisModal > div {
   background: var(--panel-dark);
@@ -1281,8 +1203,6 @@ async function runSearch() {
       <div class="item"><div class="title">CWE Information</div><div class="meta">${cweHtml}</div></div>
       <div class="item"><div class="title">CVSS Metrics</div><div class="meta">${cvssHtml}</div></div>
       <div class="item"><div class="title">Quick Links</div><div class="meta">${quickLinksHtml}</div></div>
-      <div class="item" style="display:none;"><button id="openAttack" class="btn">Open Demo Attack Path Visualizer</button></div>
-      <div class="item"><button id="openAttack" class="btn">Open Demo Attack Path Visualizer</button></div>
     `;
     document.getElementById("openAttack").onclick = () => {
       document.getElementById("attackModal").style.display = "block";
@@ -1563,3 +1483,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
