@@ -509,6 +509,7 @@ body.dark #watchContent::-webkit-scrollbar-thumb {
       <h1>Vulnerability Analysis Dashboard</h1>
       <input id="cve" type="text" placeholder="Enter CVE (e.g., CVE-2021-44228) or Vendor/Product" />
       <button id="go" class="btn">Run</button>
+      <button id="clearCve" class="btn">Clear</button>
       <button id="aiAnalysis" class="btn">AI Analysis</button>
     </header>
     <main class="cve-main">
@@ -1441,6 +1442,68 @@ function bindSearchHandlers() {
     if (input) { input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }); }
   } catch (e) { console.error('bindSearchHandlers error:', e); }
 }
+
+/* ---------- Clear ---------- */
+// --- Clear CVE-only fields (leave Watcher & feeds alone) ---
+function clearCveFields() {
+  try {
+    // Input
+    const inputEl = document.getElementById('cve');
+    if (inputEl) inputEl.value = '';
+
+    // CVE Details panel
+    const cveContent = document.getElementById('cveContent');
+    if (cveContent) {
+      cveContent.innerHTML = '<div class="meta">Enter a CVE or Vendor/Product and click Run.</div>';
+    }
+
+    // Notable Sources & References
+    const sourcesContent = document.getElementById('sourcesContent');
+    if (sourcesContent) {
+      sourcesContent.innerHTML = '<div class="meta">Will appear after running a CVE.</div>';
+    }
+
+    // Relevant Searches
+    const searchLinks = document.getElementById('searchLinks');
+    if (searchLinks) {
+      searchLinks.innerHTML = '<div class="meta">Enter a term above and click Run to populate links.</div>';
+    }
+
+    // Hide any loading overlay if visible
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    // Reset AI analysis context and close modal if open
+    if (typeof __lastAnalysisContext !== 'undefined') {
+      __lastAnalysisContext = null;
+    }
+    if (typeof closeAnalysisModal === 'function') {
+      closeAnalysisModal();
+    }
+    const analysisBody = document.getElementById('analysisBody');
+    const analysisStatus = document.getElementById('analysisStatus');
+    if (analysisBody) analysisBody.textContent = '';
+    if (analysisStatus) analysisStatus.textContent = 'Preparing analysis…';
+
+    // IMPORTANT: Do NOT touch Exploitation Watch (#watchContent),
+    // VulnCheck panel (#vulncheckContent), or any cveWatcher.* localStorage keys.
+    // This preserves the Watcher state and recent feed results.
+
+    toast('CVE fields cleared');
+  } catch (e) {
+    console.error('clearCveFields error:', e);
+    toast('Clear failed — check console for details.');
+  }
+}
+
+// --- Bind the Clear button on DOM ready (or add to your existing bindings) ---
+document.addEventListener('DOMContentLoaded', () => {
+  const clearBtn = document.getElementById('clearCve');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearCveFields);
+  }
+});
+ 
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
@@ -1453,3 +1516,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
