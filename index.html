@@ -947,15 +947,25 @@ function getSeverityChip(score) {
 }
 
 function getKevBadges(cveId) {
-  const entry = getKevEntry(cveId);
-  if (!entry) return '';
-  let badges = `<span class="chip critical" style="background:#a60000;">KEV</span>`;
+  if (!cveId || typeof cveId !== 'string' || !cveId.startsWith('CVE-')) {
+    return '';  // invalid CVE ID → no badge
+  }
+
+  const entry = getKevEntry(cveId.toUpperCase());
+  
+  if (!entry || !entry.cveID) {  // stricter: require actual match
+    return '';
+  }
+
+  let badges = `<span class="chip critical" style="background:#a60000; margin-left:8px;">KEV</span>`;
+  
   if (entry.knownRansomwareCampaignUse === 'Known') {
     badges += `<span class="chip yes" style="margin-left:4px;">Ransomware</span>`;
   }
+  
   return badges;
 }
-
+  
 function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
   const vulns = data.vulnerabilities || [];
   const total = data.totalResults || vendorSearchState.totalResults;
@@ -999,16 +1009,16 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
     const score = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore ||
                   cve.metrics?.cvssMetricV40?.[0]?.cvssData?.baseScore || 0;
 
-    html += `
-      <div class="item">
-        <div class="title">
-          ${id} ${getSeverityChip(score)} ${getKevBadges(id)}
-        </div>
-        <div class="meta">
-          Published: ${published}<br>
-          ${desc.substring(0, 180)}${desc.length > 180 ? '...' : ''}
-        </div>
-      </div>`;
+html += `
+  <div class="item">
+    <div class="title">
+      ${id} ${getSeverityChip(score)} ${getKevBadges(id) || ''}  // added || '' for safety
+    </div>
+    <div class="meta">
+      Published: ${published}<br>
+      ${desc.substring(0, 180)}${desc.length > 180 ? '...' : ''}
+    </div>
+  </div>`;
   });
 
 const content = document.getElementById('cveContent');
@@ -1765,15 +1775,29 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
-  loadVulnCheck(); loadExploitationWatch(); displayFeeds();
-  initInlineAnalysis(); bindSearchHandlers();
-  document.getElementById("go").addEventListener("click", handleSearch);
-  document.getElementById("cve").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } });
-  document.getElementById("closeModal")?.addEventListener("click", () => { document.getElementById("attackModal").style.display = "none"; });
+  loadVulnCheck();
+  loadExploitationWatch();
+  displayFeeds();
+  initInlineAnalysis();
+  bindSearchHandlers();
+
+  // Attach search handlers
+  document.getElementById("go")?.addEventListener("click", handleSearch);
+  document.getElementById("cve")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  });
+
+  document.getElementById("closeModal")?.addEventListener("click", () => {
+    document.getElementById("attackModal").style.display = "none";
+  });
+
+  // Force fresh KEV load once DOM is ready (no nesting needed)
+  refreshKev().catch(err => console.warn("KEV refresh failed on load:", err));
 });
-</script>
-</body>
-</html>
+
 
 
 
