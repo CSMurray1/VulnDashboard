@@ -876,12 +876,11 @@ let vendorSearchState = {
 
 async function fetchNvdCvesByKeyword(keyword, startIndex = 0) {
   try {
-    const url = `https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=${encodeURIComponent(keyword)}&resultsPerPage=50&startIndex=${startIndex}`;
+    const url = `https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=${encodeURIComponent(keyword)}&resultsPerPage=50&startIndex=${startIndex}&pubStartDate=2020-01-01`;
     console.log("Fetching NVD page:", url);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`NVD HTTP ${res.status}`);
     const json = await res.json();
-    
     return {
       vulnerabilities: json.vulnerabilities || [],
       totalResults: json.totalResults || 0,
@@ -916,17 +915,14 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
   const vulns = data.vulnerabilities || [];
   const total = data.totalResults || vendorSearchState.totalResults;
   let html = '';
-
   // Update global state
   vendorSearchState.keyword = searchTerm;
   vendorSearchState.totalResults = total;
   vendorSearchState.currentStartIndex = data.startIndex + vulns.length;
-
   if (!isAppend) {
     vendorSearchState.allVulns = []; // reset on new search
   }
   vendorSearchState.allVulns.push(...vulns);
-
   // Header with total & progress
   if (total > 0) {
     const shown = vendorSearchState.allVulns.length;
@@ -936,20 +932,20 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
         <div class="title" style="font-size:1.1em;">
           Found ${total.toLocaleString()} CVEs matching "${searchTerm || 'query'}"${moreText}
         </div>
-        <div class="meta">Sorted by publish date (newest first)</div>
+        <div class="meta">Showing results from 2020 onward, sorted by publish date (newest first)</div>
       </div>`;
   }
-
   if (total === 0 || vendorSearchState.allVulns.length === 0) {
     html += '<div class="meta">No matching vulnerabilities found for "' + (searchTerm || 'your query') + '".</div>';
+  } else if (total > 0 && total < 20) {
+    html += `<div class="meta" style="color:#e65100; margin-bottom:12px;">(Few results — try adding specificity like "MongoDB Server" for more)</div>`;
   } else {
-    // Sort all accumulated vulns by CVE ID descending (safety)
+    // Sort all accumulated vulns by published date descending
     vendorSearchState.allVulns.sort((a, b) => {
-      const idA = a.cve?.id || '';
-      const idB = b.cve?.id || '';
-      return idB.localeCompare(idA);
+      const dateA = new Date(a.cve?.published || 0);
+      const dateB = new Date(b.cve?.published || 0);
+      return dateB - dateA;
     });
-
     // Render current batch (or all if appending)
     const toRender = isAppend ? vulns : vendorSearchState.allVulns;
     toRender.forEach(vuln => {
@@ -962,12 +958,21 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
                     cve.metrics?.cvssMetricV40?.[0]?.cvssData?.baseScore || 0;
       const sev = severityFromScore(score);
       const cls = classFromScore(score);
-
+      // KEV check
+      let kevBadge = '';
+      const kevEntry = getKevEntry(id);
+      if (kevEntry) {
+        kevBadge = `<span class="chip critical" style="margin-left:8px; background:#a60000;">KEV</span>`;
+        if (kevEntry.knownRansomwareCampaignUse === 'Known') {
+          kevBadge += `<span class="chip yes" style="margin-left:4px;">Ransomware</span>`;
+        }
+      }
       html += `
         <div class="item">
           <div class="title">
             ${id}
             <span class="chip ${cls}">${sev} (${score || 'N/A'})</span>
+            ${kevBadge}
           </div>
           <div class="meta">
             Published: ${published}<br>
@@ -976,7 +981,6 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
         </div>`;
     });
   }
-
   // Append or replace content
   const content = document.getElementById('cveContent');
   if (isAppend) {
@@ -984,7 +988,6 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
   } else {
     content.innerHTML = html;
   }
-
   // Add/Show "Load more" button if more pages exist
   const hasMore = vendorSearchState.allVulns.length < total;
   let loadMoreBtn = document.getElementById('loadMoreBtn');
@@ -1001,7 +1004,6 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
     loadMoreBtn.style.display = hasMore ? 'block' : 'none';
     if (!hasMore) loadMoreBtn.textContent = 'All CVEs loaded';
   }
-
   renderRelevantSearches(searchTerm);
 }
 
@@ -1780,6 +1782,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
