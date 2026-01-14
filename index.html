@@ -876,21 +876,30 @@ async function fetchNvdCvesByKeyword(keyword) {
     return { vulnerabilities: [] };
   }
 }
-function renderVendorProductResults(json) {
+function renderVendorProductResults(json, searchTerm = '') {   // ← add searchTerm param
   const vulns = json.vulnerabilities || [];
   let html = '';
-  vulns.forEach(vuln => {
-    const cve = vuln?.cve; if (!cve) return;
-    const id = cve.id || 'Unknown';
-    const desc = cve.descriptions?.[0]?.value || 'No description';
-    const score = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 0;
-    const sev = severityFromScore(score);
-    const cls = classFromScore(score);
-    html += `<div class="item"><div class="title">${id} <span class="chip ${cls}">${sev} (${score})</span></div><div class="meta">${desc}</div></div>`;
-  });
+
+  if (vulns.length === 0) {
+    html = '<div class="meta">No matching vulnerabilities found for "' + (searchTerm || 'your query') + '".</div>';
+  } else {
+    vulns.forEach(vuln => {
+      const cve = vuln?.cve;
+      if (!cve) return;
+      const id = cve.id || 'Unknown';
+      const desc = cve.descriptions?.[0]?.value || 'No description';
+      const score = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 0;
+      const sev = severityFromScore(score);
+      const cls = classFromScore(score);
+      html += `<div class="item"><div class="title">${id} <span class="chip ${cls}">${sev} (${score})</span></div><div class="meta">${desc}</div></div>`;
+    });
+  }
+
   const content = document.getElementById('cveContent');
-  content.innerHTML = html || '<div class="meta">No matching vulnerabilities found.</div>';
-  renderRelevantSearches(keyword);
+  content.innerHTML = html || '<div class="meta">No results to display.</div>';
+
+  // Now safe: pass the actual term
+  renderRelevantSearches(searchTerm);
 }
 async function runVendorProductSearch(keyword) {
   if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
@@ -1544,6 +1553,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
