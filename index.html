@@ -1066,17 +1066,8 @@ async function runVendorProductSearch(keyword) {
   const trimmedKeyword = keyword.trim();
   console.log("Vendor/Product search started for:", trimmedKeyword);
 
-  // Refine to ~two words for better API relevance
   const words = trimmedKeyword.split(/\s+/).filter(w => w.length > 0);
-  let refinedKeyword = trimmedKeyword;
-
-  if (words.length >= 3) {
-    // Take first two words (vendor + primary product)
-    refinedKeyword = words.slice(0, 2).join(' ');
-    // Alternative: middle two → uncomment if preferred for some cases
-    // refinedKeyword = words.slice(Math.floor(words.length / 2) - 1, Math.floor(words.length / 2) + 1).join(' ');
-    toast(`Refined search to "${refinedKeyword}" for better results`);
-  }
+  const wordCount = words.length;
 
   vendorSearchState = {
     keyword: trimmedKeyword,
@@ -1090,80 +1081,61 @@ async function runVendorProductSearch(keyword) {
   if (loadingEl) loadingEl.style.display = "flex";
 
   try {
-    // Step 1: Try CPE enhancement on refined term
-    const cpes = await fetchCPEs(refinedKeyword);
-    let enhancedKeyword = refinedKeyword;
-    if (cpes.length > 0) {
-      const enhancements = new Set();
-      cpes.slice(0, 3).forEach(item => {
-        if (item.cpe?.cpeName) {
-          const parts = item.cpe.cpeName.split(':');
-          if (parts.length >= 5) {
-            const vendor = parts[3].toLowerCase().replace(/[^a-z0-9]/g, ' ');
-            const product = parts[4].toLowerCase().replace(/[^a-z0-9]/g, ' ');
-            if (vendor && product && vendor !== '*' && product !== '*') {
-              enhancements.add(`${vendor} ${product}`);
-            }
-          }
-        }
-      });
-      if (enhancements.size > 0) {
-        enhancedKeyword = Array.from(enhancements).join(' OR ');
-        toast(`Enhanced with CPE terms (e.g., ${Array.from(enhancements)[0]})`);
-      }
-    }
-
-    // Step 2: Broad vendor check → fallback to web link
-    const lower = trimmedKeyword.toLowerCase();
-    const broadVendors = ['microsoft', 'vmware', 'adobe', 'oracle', 'cisco', 'apple', 'linux', 'google'];
-    const isBroad = broadVendors.some(v => lower.includes(v)) && words.length <= 1;
-
-    if (isBroad) {
+    // Single-word = broad → show warning + web link only
+    if (wordCount === 1) {
       const webQuery = encodeURIComponent(trimmedKeyword);
-      const nvdWebUrl = `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${webQuery}&search_type=all`;
+      const nvdWebUrl = `https://nvd.nist.gov/vuln/search#/nvd/home?keyword=${webQuery}&resultType=records`;
+
       const fallbackHtml = `
         <div class="item" style="background:rgba(255,193,7,0.1); padding:16px; border-radius:8px;">
-          <div class="title" style="font-size:1.2em; color:#e65100;">Broad vendor search detected</div>
+          <div class="title" style="font-size:1.2em; color:#e65100;">Broad search detected</div>
           <div class="meta" style="margin-top:12px;">
-            NVD API struggles with very broad terms like "${trimmedKeyword}".<br><br>
-            <a href="${nvdWebUrl}" target="_blank" style="color:#0d6efd; font-weight:bold;">Open NVD Web Search for "${trimmedKeyword}" (recommended)</a><br>
-            (shows full list — often thousands of results)
+            Single-word searches like "${trimmedKeyword}" are too broad for the NVD API.<br><br>
+            <a href="${nvdWebUrl}" target="_blank" style="color:#0d6efd; font-weight:bold;">
+              Open full NVD web search for "${trimmedKeyword}" (recommended)
+            </a><br>
+            (usually shows hundreds or thousands of results)
           </div>
         </div>
-        <div class="meta" style="margin-top:16px;">Tip: Add a product name (e.g., "Microsoft Windows", "Cisco IOS") for API results.</div>
+        <div class="meta" style="margin-top:16px;">
+          Tip: Try adding a product/version (e.g., "${trimmedKeyword} Server", "${trimmedKeyword} 7")
+        </div>
       `;
+
       document.getElementById("cveContent").innerHTML = fallbackHtml;
       renderRelevantSearches(trimmedKeyword);
-      toast("Broad term — showing NVD web link instead");
-      console.log("Fallback to NVD web search:", nvdWebUrl);
-    } else {
-      // Use API with refined/enhanced keyword
-      const data = await fetchNvdCvesByKeyword(enhancedKeyword || refinedKeyword, 0);
+      toast("Single-word search — showing NVD web link instead");
+      console.log("Broad single-word fallback:", nvdWebUrl);
+    } 
+    // 2+ words → use API directly with user's exact input
+    else {
+      const data = await fetchNvdCvesByKeyword(trimmedKeyword, 0);
       console.log("CVE response:", {
         total: data.totalResults,
         returned: data.vulnerabilities?.length || 0,
         first: data.vulnerabilities?.[0]?.cve?.id || "none"
       });
 
-      // If very few results, show advisory + web fallback link
+      // Low results advisory
       if (data.totalResults <= 10) {
-        const webQuery = encodeURIComponent(refinedKeyword || trimmedKeyword);
+        const webQuery = encodeURIComponent(trimmedKeyword);
         const nvdWebUrl = `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${webQuery}&search_type=all`;
-        
+
         const advisoryHtml = `
           <div class="item" style="background:rgba(255,193,7,0.1); padding:16px; border-radius:8px; margin-bottom:16px;">
-            <div class="title" style="font-size:1.2em; color:#e65100;">Limited API Results (${data.totalResults})</div>
+            <div class="title" style="font-size:1.2em; color:#e65100;">Limited Results (${data.totalResults})</div>
             <div class="meta" style="margin-top:12px;">
-              The NVD API only found ${data.totalResults} matches for "${refinedKeyword || trimmedKeyword}".<br>
-              Broad/common terms like "Microsoft Windows" often return few results due to how CVEs are written.<br><br>
-              <a href="${nvdWebUrl}" target="_blank" style="color:#0d6efd; font-weight:bold;">View full NVD web search results here</a><br>
-              (usually shows many more entries)
+              Only ${data.totalResults} matches found for "${trimmedKeyword}".<br>
+              The NVD API keyword search can be picky with common terms.<br><br>
+              <a href="${nvdWebUrl}" target="_blank" style="color:#0d6efd; font-weight:bold;">
+                View full NVD web search results here
+              </a><br>
+              (often shows many more entries)
             </div>
           </div>
         `;
-        
+
         document.getElementById("cveContent").innerHTML = advisoryHtml;
-        // Still render the few results we got
         renderVendorProductResults(data, trimmedKeyword, false);
       } else {
         renderVendorProductResults(data, trimmedKeyword, false);
@@ -1173,7 +1145,9 @@ async function runVendorProductSearch(keyword) {
     }
   } catch (err) {
     console.error("Search failed:", err);
-    document.getElementById("cveContent").innerHTML = `<div class="meta">Error: ${err.message || 'NVD service issue'}. Try a more specific term like "Microsoft Exchange" or "Rockwell FactoryTalk".</div>`;
+    document.getElementById("cveContent").innerHTML = `
+      <div class="meta">Error: ${err.message || 'NVD service issue'}. Try a different term.</div>
+    `;
     renderRelevantSearches(trimmedKeyword);
   } finally {
     if (loadingEl) loadingEl.style.display = "none";
@@ -1808,6 +1782,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
