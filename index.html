@@ -863,7 +863,16 @@ async function loadKEV() {
   }
   throw new Error('Unable to load CISA KEV data');
 }
-async function getKevEntry(cveId) { const kev = await loadKEV(); const up = cveId.toUpperCase(); return kev.find(e => (e.cveID || e.cveId) === up) || null; }
+function getKevEntry(cveId) {
+  if (!kevCache.loaded || !kevCache.data) {
+    console.warn("KEV cache not loaded yet");
+    return null;
+  }
+  const up = cveId.toUpperCase();
+  return kevCache.data.find(e => 
+    (e.cveID || e.cveId || '').toUpperCase() === up
+  ) || null;
+}
 /* ---------- SSVC helpers ---------- */
 /* [unchanged helpers: normalizeSsvcValue, capFirst, extractSsvcDeep] */
 function normalizeSsvcValue(val) { return (val || 'N/A').toLowerCase().replace(/^(active|none|proof-of-concept|sporadic)$/i, m => m.toLowerCase()); }
@@ -948,21 +957,21 @@ function getSeverityChip(score) {
 
 function getKevBadges(cveId) {
   if (!cveId || typeof cveId !== 'string' || !cveId.startsWith('CVE-')) {
-    return '';  // invalid CVE ID → no badge
+    return '';
   }
 
-  const entry = getKevEntry(cveId.toUpperCase());
-  
-  if (!entry || !entry.cveID) {  // stricter: require actual match
+  const entry = getKevEntry(cveId);  // now sync
+
+  if (!entry || !entry.cveID) {
     return '';
   }
 
   let badges = `<span class="chip critical" style="background:#a60000; margin-left:8px;">KEV</span>`;
-  
+
   if (entry.knownRansomwareCampaignUse === 'Known') {
     badges += `<span class="chip yes" style="margin-left:4px;">Ransomware</span>`;
   }
-  
+
   return badges;
 }
   
@@ -1780,6 +1789,7 @@ document.addEventListener("DOMContentLoaded", () => {
   displayFeeds();
   initInlineAnalysis();
   bindSearchHandlers();
+  loadKEV().catch(err => console.warn("Initial KEV load failed:", err));
 
   // Attach search handlers
   document.getElementById("go")?.addEventListener("click", handleSearch);
@@ -1801,6 +1811,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </html>
   
+
 
 
 
