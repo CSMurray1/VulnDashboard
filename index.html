@@ -984,10 +984,24 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
   vendorSearchState.keyword = searchTerm;
   vendorSearchState.totalResults = total;
   vendorSearchState.currentStartIndex = data.startIndex + vulns.length;
-  if (!isAppend) vendorSearchState.allVulns = [];
+
+  // Accumulate vulnerabilities
+  if (!isAppend) {
+    vendorSearchState.allVulns = [];
+  }
   vendorSearchState.allVulns.push(...vulns);
 
-  // Header
+  // ────────────────────────────────────────────────
+  // SORT HERE: newest published date first (descending)
+  // We sort the accumulated list every time we render
+  // ────────────────────────────────────────────────
+  vendorSearchState.allVulns.sort((a, b) => {
+    const dateA = a.cve?.published ? new Date(a.cve.published) : new Date(0);
+    const dateB = b.cve?.published ? new Date(b.cve.published) : new Date(0);
+    return dateB - dateA;  // descending = newest first
+  });
+
+  // Header with total count
   if (total > 0) {
     const shown = vendorSearchState.allVulns.length;
     const more = shown < total ? ` (showing first ${shown} of ${total.toLocaleString()})` : '';
@@ -996,7 +1010,7 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
         <div class="title" style="font-size:1.1em;">
           Found ${total.toLocaleString()} CVEs for "${searchTerm}"${more}
         </div>
-        <div class="meta">From 2020 onward • Newest first</div>
+        <div class="meta">Sorted: Newest published first • From 2020 onward</div>
       </div>`;
 
     if (total < 20) {
@@ -1008,9 +1022,8 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
     html += '<div class="meta">No matching vulnerabilities found.</div>';
   }
 
-  // Render items
-  const toRender = isAppend ? vulns : vendorSearchState.allVulns;
-  toRender.forEach(vuln => {
+  // Render the now-sorted items
+  vendorSearchState.allVulns.forEach(vuln => {
     const cve = vuln?.cve || {};
     const id = cve.id || 'Unknown';
     const desc = cve.descriptions?.[0]?.value || 'No description';
@@ -1018,25 +1031,26 @@ function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
     const score = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore ||
                   cve.metrics?.cvssMetricV40?.[0]?.cvssData?.baseScore || 0;
 
-html += `
-  <div class="item">
-    <div class="title">
-      ${id} ${getSeverityChip(score)} ${getKevBadges(id) || ''}  // added || '' for safety
-    </div>
-    <div class="meta">
-      Published: ${published}<br>
-      ${desc.substring(0, 180)}${desc.length > 180 ? '...' : ''}
-    </div>
-  </div>`;
+    html += `
+      <div class="item">
+        <div class="title">
+          ${id} ${getSeverityChip(score)} ${getKevBadges(id) || ''}
+        </div>
+        <div class="meta">
+          Published: ${published}<br>
+          ${desc.substring(0, 180)}${desc.length > 180 ? '...' : ''}
+        </div>
+      </div>`;
   });
 
-const content = document.getElementById('cveContent');
-if (isAppend) {
-  content.innerHTML += html;
-} else {
-  content.innerHTML = html;
-}
-  // Load more button logic (unchanged, but now cleaner)
+  const content = document.getElementById('cveContent');
+  if (isAppend) {
+    content.innerHTML += html;
+  } else {
+    content.innerHTML = html;
+  }
+
+  // Load more button logic
   const hasMore = vendorSearchState.allVulns.length < total;
   let btn = document.getElementById('loadMoreBtn');
   if (hasMore && !btn) {
@@ -1811,6 +1825,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </html>
   
+
 
 
 
