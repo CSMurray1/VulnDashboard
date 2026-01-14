@@ -926,11 +926,11 @@ async function fetchFromNVD(endpoint, params = {}) {
 async function fetchNvdCvesByKeyword(keyword, startIndex = 0) {
   return fetchFromNVD('cves/2.0', {
     keywordSearch: keyword,
-    startIndex,
-    pubStartDate: '2020-01-01'  // prioritize recent results
+    startIndex
+    // pubStartDate removed — lets API return all matching results by default
   });
 }
-
+  
 async function fetchCPEs(keyword) {
   const data = await fetchFromNVD('cpes/2.0', {
     keywordSearch: keyword,
@@ -1774,6 +1774,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
