@@ -894,6 +894,24 @@ async function fetchNvdCvesByKeyword(keyword, startIndex = 0) {
   }
 }
 
+async function fetchCPEs(keyword) {
+  try {
+    // NVD CPE/Products API endpoint - searches the official CPE dictionary
+    const url = `https://services.nvd.nist.gov/rest/json/cpes/2.0?keywordSearch=${encodeURIComponent(keyword)}&resultsPerPage=10`;
+    console.log("Fetching CPEs:", url);
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`CPE HTTP ${res.status} - falling back to keyword-only`);
+      return [];
+    }
+    const json = await res.json();
+    return json.products || [];  // array of CPE objects
+  } catch (err) {
+    console.error("CPE fetch failed:", err);
+    return [];
+  }
+}
+  
 function renderVendorProductResults(data, searchTerm = '', isAppend = false) {
   const vulns = data.vulnerabilities || [];
   const total = data.totalResults || vendorSearchState.totalResults;
@@ -1016,10 +1034,13 @@ async function runVendorProductSearch(keyword) {
     toast("Invalid search term for vendor/product");
     return;
   }
-  console.log("Vendor/Product search started for:", keyword);
+  const trimmedKeyword = keyword.trim();
 
-  vendorSearchState = {  // reset state for new search
-    keyword: keyword,
+  console.log("Vendor/Product search started for:", trimmedKeyword);
+
+  // Reset pagination state for new search
+  vendorSearchState = {
+    keyword: trimmedKeyword,
     currentStartIndex: 0,
     totalResults: 0,
     resultsPerPage: 50,
@@ -1030,13 +1051,48 @@ async function runVendorProductSearch(keyword) {
   if (loadingEl) loadingEl.style.display = "flex";
 
   try {
-    const data = await fetchNvdCvesByKeyword(keyword, 0);
-    console.log("NVD response:", data);
-    renderVendorProductResults(data, keyword, false); // new search, not append
+    // Step 1: Try to find matching CPEs first
+    const cpes = await fetchCPEs(trimmedKeyword);
+    let enhancedKeyword = trimmedKeyword;
+
+    if (cpes.length > 0) {
+      // Take the first few relevant CPEs and extract vendor/product parts for better matching
+      const enhancements = new Set();
+      cpes.slice(0, 3).forEach(item => {  // limit to top 3 matches
+        if (item.cpe && item.cpe.cpeName) {
+          const parts = item.cpe.cpeName.split(':');
+          if (parts.length >= 5) {
+            const vendor = parts[3].toLowerCase();
+            const product = parts[4].toLowerCase();
+            if (vendor && product && vendor !== '*' && product !== '*') {
+              enhancements.add(`${vendor} ${product}`);
+            }
+          }
+        }
+      });
+
+      if (enhancements.size > 0) {
+        enhancedKeyword = `${trimmedKeyword} ${Array.from(enhancements).join(' ')}`;
+        console.log("Enhanced keyword with CPEs:", enhancedKeyword);
+        toast(`Using refined terms from NVD CPE dictionary (e.g., ${Array.from(enhancements)[0]})`);
+      }
+    } else {
+      console.log("No CPE matches found - using plain keyword");
+      // Optional: warn user if keyword is too broad
+      if (trimmedKeyword.length < 8 || !trimmedKeyword.includes(' ')) {
+        toast("Tip: For broad vendors like 'Microsoft', add the product (e.g., 'Microsoft Exchange') for better results");
+      }
+    }
+
+    // Step 2: Fetch CVEs with the (possibly enhanced) keyword
+    const data = await fetchNvdCvesByKeyword(enhancedKeyword, 0);
+    console.log("NVD CVE response:", data);
+
+    renderVendorProductResults(data, trimmedKeyword, false);  // show original search term in UI
   } catch (err) {
     console.error("Vendor search error:", err);
     document.getElementById("cveContent").innerHTML = `<div class="meta">Error loading vendor/product results: ${err.message}</div>`;
-    renderRelevantSearches(keyword);
+    renderRelevantSearches(trimmedKeyword);
   } finally {
     if (loadingEl) loadingEl.style.display = "none";
   }
@@ -1670,6 +1726,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
