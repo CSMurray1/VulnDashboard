@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Vulnerability Dashboard</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪲</text></svg>'" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90' text-anchor='middle' x='50'%3E%F0%9F%AA%B2%3C/text%3E%3C/svg%3E">
 <!-- ===== Global Styles ===== -->
 <style>
 :root {
@@ -109,7 +109,7 @@ header.cve-header h1::before {
   display: block;
   width: 36px;
   height: 36px;
-  background: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪲</text></svg>') center/cover no-repeat;
+  background: url("data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><text y=&quot;.9em&quot; font-size=&quot;90&quot; text-anchor=&quot;middle&quot; x=&quot;50&quot;>🪲</text></svg>") center / contain no-repeat;
 }
 #cve {
   flex: 1;
@@ -841,17 +841,20 @@ function normalizeSsvcValue(val) { return (val || 'N/A').toLowerCase().replace(/
 function capFirst(str) { return (str || '').charAt(0).toUpperCase() + str.slice(1); }
 function extractSsvcDeep(obj) {
   const decisionPoints = { exploitation: 'N/A', automatable: 'N/A', technicalImpact: 'N/A', decision: 'N/A' };
-  const traverse = (o) => {
-    if (typeof o !== 'object' || !o) return;
-    for (const key in o) {
-      if (key === 'exploitation') decisionPoints.exploitation = normalizeSsvcValue(o[key]);
-      if (key === 'automatable') decisionPoints.automatable = normalizeSsvcValue(o[key]);
-      if (key === 'technical_impact') decisionPoints.technicalImpact = normalizeSsvcValue(o[key]);
-      if (key === 'decision') decisionPoints.decision = normalizeSsvcValue(o[key]);
-      traverse(o[key]);
+  if (typeof obj !== 'object' || !obj || !Array.isArray(obj.options)) return decisionPoints;
+
+  obj.options.forEach(opt => {
+    if (typeof opt !== 'object' || !opt) return;
+    for (const key in opt) {
+      const normKey = key.toLowerCase().replace(/\s+/g, '_');
+      const val = opt[key];
+      if (normKey === 'exploitation') decisionPoints.exploitation = normalizeSsvcValue(val);
+      if (normKey === 'automatable') decisionPoints.automatable = normalizeSsvcValue(val);
+      if (normKey === 'technical_impact') decisionPoints.technicalImpact = normalizeSsvcValue(val);
+      if (normKey === 'decision') decisionPoints.decision = normalizeSsvcValue(val);
     }
-  };
-  traverse(obj);
+  });
+
   return decisionPoints;
 }
 /* ---------- Vendor/Product helpers ---------- */
@@ -1516,5 +1519,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
