@@ -896,18 +896,18 @@ async function fetchNvdCvesByKeyword(keyword, startIndex = 0) {
 
 async function fetchCPEs(keyword) {
   try {
-    // NVD CPE/Products API endpoint - searches the official CPE dictionary
     const url = `https://services.nvd.nist.gov/rest/json/cpes/2.0?keywordSearch=${encodeURIComponent(keyword)}&resultsPerPage=10`;
-    console.log("Fetching CPEs:", url);
+    console.log("Fetching CPEs for:", keyword, "→", url);
     const res = await fetch(url);
     if (!res.ok) {
-      console.warn(`CPE HTTP ${res.status} - falling back to keyword-only`);
+      console.warn(`CPE API returned ${res.status} — skipping enhancement`);
       return [];
     }
     const json = await res.json();
-    return json.products || [];  // array of CPE objects
+    console.log("CPE results count:", json.totalResults || 0);
+    return json.products || [];
   } catch (err) {
-    console.error("CPE fetch failed:", err);
+    console.error("CPE fetch error:", err);
     return [];
   }
 }
@@ -1034,8 +1034,8 @@ async function runVendorProductSearch(keyword) {
     toast("Invalid search term for vendor/product");
     return;
   }
+  
   const trimmedKeyword = keyword.trim();
-
   console.log("Vendor/Product search started for:", trimmedKeyword);
 
   // Reset pagination state for new search
@@ -1054,12 +1054,13 @@ async function runVendorProductSearch(keyword) {
     // Step 1: Try to find matching CPEs first
     const cpes = await fetchCPEs(trimmedKeyword);
     let enhancedKeyword = trimmedKeyword;
+    let enhancementSource = "original keyword";
 
     if (cpes.length > 0) {
-      // Take the first few relevant CPEs and extract vendor/product parts for better matching
+      // Extract vendor/product from top CPEs
       const enhancements = new Set();
-      cpes.slice(0, 3).forEach(item => {  // limit to top 3 matches
-        if (item.cpe && item.cpe.cpeName) {
+      cpes.slice(0, 5).forEach(item => {
+        if (item.cpe?.cpeName) {
           const parts = item.cpe.cpeName.split(':');
           if (parts.length >= 5) {
             const vendor = parts[3].toLowerCase();
@@ -1073,22 +1074,52 @@ async function runVendorProductSearch(keyword) {
 
       if (enhancements.size > 0) {
         enhancedKeyword = `${trimmedKeyword} ${Array.from(enhancements).join(' ')}`;
-        console.log("Enhanced keyword with CPEs:", enhancedKeyword);
-        toast(`Using refined terms from NVD CPE dictionary (e.g., ${Array.from(enhancements)[0]})`);
-      }
-    } else {
-      console.log("No CPE matches found - using plain keyword");
-      // Optional: warn user if keyword is too broad
-      if (trimmedKeyword.length < 8 || !trimmedKeyword.includes(' ')) {
-        toast("Tip: For broad vendors like 'Microsoft', add the product (e.g., 'Microsoft Exchange') for better results");
+        enhancementSource = "CPE dictionary";
+        console.log("Enhanced via CPE:", enhancedKeyword);
+        toast(`Refined search using NVD CPE terms (e.g., ${Array.from(enhancements)[0]})`);
       }
     }
 
-    // Step 2: Fetch CVEs with the (possibly enhanced) keyword
-    const data = await fetchNvdCvesByKeyword(enhancedKeyword, 0);
-    console.log("NVD CVE response:", data);
+    // Fallback heuristics for common broad vendors when CPE gives nothing
+    if (cpes.length === 0 || enhancementSource === "original keyword") {
+      const lower = trimmedKeyword.toLowerCase();
+      let fallbackAdded = false;
 
-    renderVendorProductResults(data, trimmedKeyword, false);  // show original search term in UI
+      if (lower.includes('microsoft')) {
+        enhancedKeyword = `${trimmedKeyword} windows exchange office outlook azure edge sharepoint onenote teams`;
+        enhancementSource = "Microsoft fallback";
+        fallbackAdded = true;
+        toast("Broad 'Microsoft' query — expanded with common products (Windows, Exchange, Office, etc.)");
+      } else if (lower.includes('vmware')) {
+        enhancedKeyword = `${trimmedKeyword} vcenter esxi workstation fusion horizon nsx vsphere airwatch`;
+        enhancementSource = "VMware fallback";
+        fallbackAdded = true;
+        toast("Broad 'VMware' query — expanded with common products (vCenter, ESXi, Workstation, etc.)");
+      }
+
+      if (!fallbackAdded && lower.length < 10 && !lower.includes(' ')) {
+        toast("Tip: For broad/single-word searches, try adding a product name (e.g., 'Microsoft Windows' or 'VMware ESXi')");
+      }
+    }
+
+    console.log(`Final search keyword (${enhancementSource}):`, enhancedKeyword);
+
+    // Optional: log the final URL being sent to NVD for debugging
+    const finalUrl = `https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=${encodeURIComponent(enhancedKeyword)}&resultsPerPage=50&sortField=published&sortOrder=desc`;
+    console.log(`Final CVE search URL:`, finalUrl);
+
+    // Step 2: Fetch CVEs with the enhanced keyword
+    const data = await fetchNvdCvesByKeyword(enhancedKeyword, 0);
+
+    // Debug: log response summary
+    console.log("CVE response summary:", {
+      totalResults: data.totalResults,
+      vulnsReturned: data.vulnerabilities?.length || 0,
+      firstCVE: data.vulnerabilities?.[0]?.cve?.id || "none"
+    });
+
+    renderVendorProductResults(data, trimmedKeyword, false);
+
   } catch (err) {
     console.error("Vendor search error:", err);
     document.getElementById("cveContent").innerHTML = `<div class="meta">Error loading vendor/product results: ${err.message}</div>`;
@@ -1726,6 +1757,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
