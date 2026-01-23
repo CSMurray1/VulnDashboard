@@ -4,7 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Vulnerability Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90' text-anchor='middle' x='50'%3E%F0%9F%AA%B2%3C/text%3E%3C/svg%3E"><!-- ===== Global Styles ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90' text-anchor='middle' x='50'%3E%F0%9F%AA%B2%3C/text%3E%3C/svg%3E">
+<!-- ===== Global Styles ===== -->
 <style>
 
 :root {
@@ -910,17 +911,33 @@ function normalizeSsvcValue(val) { return (val || 'N/A').toLowerCase().replace(/
 function capFirst(str) { return (str || '').charAt(0).toUpperCase() + str.slice(1); }
 function extractSsvcDeep(obj) {
   const decisionPoints = { exploitation: 'N/A', automatable: 'N/A', technicalImpact: 'N/A', decision: 'N/A' };
-  const traverse = (o) => {
-    if (typeof o !== 'object' || !o) return;
-    for (const key in o) {
-      if (key === 'exploitation') decisionPoints.exploitation = normalizeSsvcValue(o[key]);
-      if (key === 'automatable') decisionPoints.automatable = normalizeSsvcValue(o[key]);
-      if (key === 'technical_impact') decisionPoints.technicalImpact = normalizeSsvcValue(o[key]);
-      if (key === 'decision') decisionPoints.decision = normalizeSsvcValue(o[key]);
-      traverse(o[key]);
+  const canonical = (k) => k?.toString().toLowerCase().replace(/[\s_\-]/g, '');
+
+  const visit = (o) => {
+    if (!o || typeof o !== 'object') return;
+
+    for (const k in o) {
+      const ck = canonical(k);
+      const v = o[k];
+
+      // Some providers wrap values like { value: "active" }
+      const val = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
+
+      if (ck === 'exploitation')          decisionPoints.exploitation   = normalizeSsvcValue(val);
+      if (ck === 'automatable')           decisionPoints.automatable    = normalizeSsvcValue(val);
+      if (ck === 'technicalimpact')       decisionPoints.technicalImpact = normalizeSsvcValue(val);
+      if (ck === 'decision')              decisionPoints.decision       = normalizeSsvcValue(val);
+
+      // Known nest: decision_points: [ {...}, {...} ]
+      if (ck === 'decisionpoints' && Array.isArray(v)) {
+        v.forEach(visit);
+      }
+
+      visit(v);
     }
   };
-  traverse(obj);
+
+  visit(obj);
   return decisionPoints;
 }
 /* ---------- Vendor/Product helpers ---------- */
@@ -1744,3 +1761,4 @@ if (googleBtn) {
 </script>
 </body>
 </html>
+
