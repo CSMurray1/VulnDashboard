@@ -1746,7 +1746,8 @@ if (googleBtn) {
             return;
         }
         // Improved security-focused query (unchanged)
-        const fullQuery = `${cve} (site:github.com OR site:exploit-db.com OR site:darkreading.com OR site:thehackernews.com OR site:bleepingcomputer.com OR site:tenable.com OR site:rapid7.com OR site:qualys.com OR site:medium.com OR site:blog) exploit poc analysis mitigation technical details root cause patch advisory`;
+        const fullQuery = `${cve} ROLE: You are a vulnerability analyst supporting VM operations. TASK: Given a CVE identifier and publicly available information, produce a compact defensive brief. SOURCES: Use only widely recognized public sources (e.g., NVD, CISA KEV, vendor advisories, MSRC, CERT/CC, MITRE, VulnCheck summaries, GitHub repos). OUTPUT(with each line being on it's own line so it looks good): CVE: <CVE-ID> Title: Short vendor/product + vuln type CVSS: <CVSS Score and Version> Base: <number or 'No data found', Vector: <string or 'No data found'> Affected: key versions/components or 'No data found' Summary: Defensive analysis; no exploit details or instructions: Exploitation: Observed in the wild: True|False|Unknown Exploit availability: None|PoC|Weaponized|Unknown Mitigations: Patch/Advisory, Defensive steps from source References: normalized source names + URLs CONSTRAINTS: - If specific information cannot be located, use "No data found". - Do not include exploit code, payloads, or instructions, but do provide links if you can. - Do NOT use example data. Prioritize using CVE.org for the CVE information, including the vendor and product.
+            - Keep total characters under 1,850.`;
         const encoded = encodeURIComponent(fullQuery);
         const googleUrl = `https://www.google.com/search?q=${encoded}`;
         
